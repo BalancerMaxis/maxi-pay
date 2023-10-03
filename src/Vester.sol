@@ -5,7 +5,6 @@ import "../lib/openzeppelin-contracts/contracts/proxy/utils/Initializable.sol";
 import "../lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 import "../lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./interfaces/IAuraRewardPool.sol";
-import { console2 } from "../lib/forge-std/src/console2.sol";
 
 library VesterErrors {
     error NotDaoMsig();
@@ -39,10 +38,10 @@ contract Vester is Initializable {
     //                         Storage                              //
     //////////////////////////////////////////////////////////////////
     address public beneficiary;
-    uint256 public vestingNonce;
+    uint256 internal vestingNonce;
     // Mapping for vesting positions
     // Nonce -> VestingPosition
-    mapping(uint256 => VestingPosition) public vestingPositions;
+    mapping(uint256 => VestingPosition) internal vestingPositions;
 
     //////////////////////////////////////////////////////////////////
     //                         Events                               //
@@ -88,6 +87,12 @@ contract Vester is Initializable {
     //////////////////////////////////////////////////////////////////
     //                       External functions                     //
     //////////////////////////////////////////////////////////////////
+    /// @notice Get current vesting nonce. This nonce represents future vesting position nonce
+    /// @dev If needed to check current existing nonce, subtract 1 from this value
+    function getVestingNonce() external view returns (uint256) {
+        return vestingNonce;
+    }
+
     /// @notice Get vesting position by nonce
     /// @param _nonce Nonce of the vesting position
     function getVestingPosition(uint256 _nonce) external view returns (VestingPosition memory) {
@@ -135,7 +140,6 @@ contract Vester is Initializable {
     function ragequit(address _to) external onlyDaoMsig {
         // Claim rewards and transfer AURA to beneficiary
         AURA_REWARD_POOL.getReward();
-        console2.log(AURA.balanceOf(address(this)));
         // Transfer staked AURA BAL to beneficiary
         STAKED_AURABAL.safeTransfer(_to, STAKED_AURABAL.balanceOf(address(this)));
         // Transfer AURA to beneficiary
@@ -147,10 +151,13 @@ contract Vester is Initializable {
     //                       Internal functions                     //
     //////////////////////////////////////////////////////////////////
     function _deposit(uint256 _amount, uint256 _vestingPeriod) internal {
-        STAKED_AURABAL.safeTransferFrom(msg.sender, address(this), _amount);
-        uint256 vestingEnds = block.timestamp + _vestingPeriod;
-        vestingPositions[vestingNonce] = VestingPosition(_amount, vestingEnds, false);
-        emit VestingPositionCreated(vestingNonce, _amount, vestingEnds);
+        // Local variable to avoid multiple SLOADs
+        uint256 _nonce = vestingNonce;
+        // Increase nonce
         vestingNonce++;
+        uint256 vestingEnds = block.timestamp + _vestingPeriod;
+        vestingPositions[_nonce] = VestingPosition(_amount, vestingEnds, false);
+        STAKED_AURABAL.safeTransferFrom(msg.sender, address(this), _amount);
+        emit VestingPositionCreated(_nonce, _amount, vestingEnds);
     }
 }

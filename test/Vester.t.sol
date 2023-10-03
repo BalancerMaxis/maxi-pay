@@ -48,7 +48,7 @@ contract TestVester is BaseFixture {
         // Deposit st auraBAL into the vesting contract
         vm.prank(DAO_MSIG);
         aliceVester.deposit(_depositAmount);
-
+        assertEq(aliceVester.getVestingNonce(), 1);
         // Make sure the vesting contract has the st auraBAL
         assertEq(STAKED_AURABAL.balanceOf(address(aliceVester)), _depositAmount);
         // Make sure vesting position was created
@@ -129,6 +129,8 @@ contract TestVester is BaseFixture {
         for (uint256 i = 0; i < _positionsAmnt; i++) {
             vm.prank(DAO_MSIG);
             aliceVester.deposit(_depositAmount);
+            // Check nonce:
+            assertEq(aliceVester.getVestingNonce(), i + 1);
         }
         // Now roll time to the end of the vesting period and claim all positions
         vm.warp(block.timestamp + vester.DEFAULT_VESTING_PERIOD());
