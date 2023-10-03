@@ -39,6 +39,7 @@ contract BaseFixture is Test {
         randomEOA = users[2];
         vm.label(randomEOA, "randomEOA");
 
+        // Implementation contract should be initialised with address(0)
         vester = new Vester();
         factory = new Factory(address(vester));
     }

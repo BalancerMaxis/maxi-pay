@@ -50,9 +50,14 @@ contract Vester is Initializable {
     event VestingPositionCreated(uint256 indexed nonce, uint256 amount, uint256 vestingEnds);
     event Claimed(uint256 indexed nonce, uint256 amount);
     event Ragequit(address indexed to);
+
+    constructor() {
+        // Disable initializers for the implementation contract
+        _disableInitializers();
+    }
+
     /// @notice Contract initializer
     /// @param _beneficiary Address of the beneficiary that will be able to claim tokens
-
     function initialise(address _beneficiary) public initializer {
         beneficiary = _beneficiary;
     }
