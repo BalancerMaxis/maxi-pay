@@ -15,4 +15,29 @@ contract TestFactory is BaseFixture {
         // Check implementation address
         assertEq(address(factory.getImplementation()), address(vester));
     }
+
+    function testSetNewImplHappy() public {
+        // Deploy a new vesting contract
+        Vester newVester = new Vester();
+        vm.prank(DAO_MSIG);
+        factory.setImplementation(address(newVester));
+        assertEq(address(factory.getImplementation()), address(newVester));
+    }
+
+    /// @notice Should revert if not called by DAO multisig
+    function testSetNewImplUnhappy() public {
+        Vester newVester = new Vester();
+        vm.prank(alice);
+        vm.expectRevert("Ownable: caller is not the owner");
+        factory.setImplementation(address(newVester));
+    }
+
+    function testDeployVesters() public {
+        vm.prank(DAO_MSIG);
+        Vester aliceVester = Vester(factory.deployVestingContract(alice));
+
+        // Check that the vesting contract was deployed
+        assertEq(factory.vestingContracts(alice, 0), address(aliceVester));
+        assertEq(aliceVester.beneficiary(), alice);
+    }
 }

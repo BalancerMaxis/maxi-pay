@@ -30,9 +30,9 @@ contract Factory is Ownable {
     constructor(address _implementation) Ownable() {
         address oldImplementation = implementation;
         implementation = _implementation;
-        emit LogImplementationChanged(oldImplementation, _implementation);
         // Transfer ownership of this contract to DAO multisig
         transferOwnership(DAO_MSIG);
+        emit LogImplementationChanged(oldImplementation, _implementation);
     }
 
     /// @notice Set implementation address

@@ -8,6 +8,8 @@ import "../src/Factory.sol";
 contract BaseFixture is Test {
     using stdStorage for StdStorage;
 
+    address public constant DAO_MSIG = address(0xaF23DC5983230E9eEAf93280e312e57539D098D0);
+
     Utils internal utils;
     address payable[] internal users;
     address public alice;

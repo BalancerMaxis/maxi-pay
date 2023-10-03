@@ -15,9 +15,9 @@ contract Vester is Initializable {
     //////////////////////////////////////////////////////////////////
     //                         Constants                            //
     //////////////////////////////////////////////////////////////////
-
     ERC20 public constant STAKED_AURABAL = ERC20(address(0x95c1D2014909c04202fa73820B894b45F054F25e));
     address public constant DAO_MSIG = address(0xaF23DC5983230E9eEAf93280e312e57539D098D0);
+    uint256 public constant DEFAULT_VESTING_PERIOD = 365 days;
     //////////////////////////////////////////////////////////////////
     //                         Storage                              //
     //////////////////////////////////////////////////////////////////
@@ -60,4 +60,8 @@ contract Vester is Initializable {
         beneficiary = _beneficiary;
         emit BeneficiaryChanged(oldBeneficiary, _beneficiary);
     }
+
+    //////////////////////////////////////////////////////////////////
+    //                       Core logic                             //
+    //////////////////////////////////////////////////////////////////
 }
