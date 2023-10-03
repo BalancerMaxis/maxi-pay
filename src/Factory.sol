@@ -4,8 +4,9 @@ pragma solidity 0.8.20;
 import "../lib/openzeppelin-contracts/contracts/proxy/Clones.sol";
 import "../lib/openzeppelin-contracts/contracts/access/Ownable.sol";
 import { Vester } from "./Vester.sol";
+import "./interfaces/IFactory.sol";
 
-contract Factory is Ownable {
+contract Factory is Ownable, IFactory {
     using Clones for address;
     //////////////////////////////////////////////////////////////////
     //                         Constants                            //

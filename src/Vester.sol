@@ -5,6 +5,7 @@ import "../lib/openzeppelin-contracts/contracts/proxy/utils/Initializable.sol";
 import "../lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 import "../lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./interfaces/IAuraRewardPool.sol";
+import "./interfaces/IVester.sol";
 
 library VesterErrors {
     error NotDaoMsig();
@@ -15,14 +16,8 @@ library VesterErrors {
 
 /// @title Vester contract
 /// @notice Each Maxis User has a personal vesting contract deployed
-contract Vester is Initializable {
+contract Vester is Initializable, IVester {
     using SafeERC20 for ERC20;
-
-    struct VestingPosition {
-        uint256 amount;
-        uint256 vestingEnds;
-        bool claimed;
-    }
 
     //////////////////////////////////////////////////////////////////
     //                         Constants                            //
