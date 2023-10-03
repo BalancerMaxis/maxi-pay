@@ -29,6 +29,8 @@ Pending AURA rewards will be claimed and transferred to `address _to` as well.
 ### Upgrading vesting contract implementation
 Simply deploy new implementation and pass it to `factory.setImplementation(address _newImplementation)` from the owner of the factory.
 
+**NOTE**: Implementation upgrade is not retroactive. All previously deployed vesting contracts will use old implementation.
+
 ### TL;DR:
 Check this script for usage example: [Usage Example](https://github.com/BalancerMaxis/maxi-pay/blob/main/script/UsageExample.sol)
 
