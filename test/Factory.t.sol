@@ -39,5 +39,16 @@ contract TestFactory is BaseFixture {
         // Check that the vesting contract was deployed
         assertEq(factory.vestingContracts(alice, 0), address(aliceVester));
         assertEq(aliceVester.beneficiary(), alice);
+
+        // Deploy vester for Bob
+        vm.prank(DAO_MSIG);
+        Vester bobVester = Vester(factory.deployVestingContract(bob));
+        // Check that the vesting contract was deployed
+        assertEq(factory.vestingContracts(bob, 0), address(bobVester));
+
+        // Deploy one more for Bob and make sure it is accessible in the array
+        vm.prank(DAO_MSIG);
+        Vester bobVester2 = Vester(factory.deployVestingContract(bob));
+        assertEq(factory.vestingContracts(bob, 1), address(bobVester2));
     }
 }
