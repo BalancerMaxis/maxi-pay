@@ -3,7 +3,7 @@ pragma solidity 0.8.20;
 
 import "../lib/openzeppelin-contracts/contracts/proxy/Clones.sol";
 import "../lib/openzeppelin-contracts/contracts/access/Ownable.sol";
-import {Vester} from "./Vester.sol";
+import { Vester } from "./Vester.sol";
 
 contract Factory is Ownable {
     using Clones for address;
@@ -11,16 +11,17 @@ contract Factory is Ownable {
     //                         Constants                            //
     //////////////////////////////////////////////////////////////////
 
-    address public constant DAO_MSIG = address(1337);
-
+    address public constant DAO_MSIG = address(0xaF23DC5983230E9eEAf93280e312e57539D098D0);
     //////////////////////////////////////////////////////////////////
     //                         Storage                              //
     //////////////////////////////////////////////////////////////////
     address public implementation;
-
+    // User -> vesting contracts deployed
+    mapping(address => address[]) public vestingContracts;
     //////////////////////////////////////////////////////////////////
     //                         Events                               //
     //////////////////////////////////////////////////////////////////
+
     event LogImplementationChanged(address indexed oldImplementation, address indexed newImplementation);
     event LogVestingContractDeployed(address indexed vestingContract, address indexed owner);
 
@@ -49,7 +50,9 @@ contract Factory is Ownable {
     /// @notice Deploy a new vesting contract
     function deployVestingContract(address _owner) public onlyOwner returns (address vestingContract) {
         vestingContract = implementation.clone();
-        Vester(vestingContract).initialise(_owner, DAO_MSIG);
+        Vester(vestingContract).initialise(_owner);
+        // Put vesting contract in mapping
+        vestingContracts[_owner].push(vestingContract);
         emit LogVestingContractDeployed(vestingContract, _owner);
     }
 }
