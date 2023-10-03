@@ -34,6 +34,56 @@ Simply deploy new implementation and pass it to `factory.setImplementation(addre
 ### TL;DR:
 Check this script for usage example: [Usage Example](https://github.com/BalancerMaxis/maxi-pay/blob/main/script/UsageExample.sol)
 
+
+## Interfaces:
+
+### Factory
+```solidity
+interface IFactory {
+    /// @notice Get implementation address
+    function getImplementation() external view returns (address);
+    /// @notice Deploy a new vesting contract
+    function deployVestingContract(address _beneficiary) external returns (address vestingContract);
+    /// @notice Get vesting contracts deployed for a user
+    function getVestingContracts(address _user) external view returns (address[] memory);
+    /// @notice Set implementation address
+    function setImplementation(address _implementation) external;
+}
+```
+
+### Vesting contract
+```solidity
+interface IVester {
+    /// @notice Vesting position struct
+    struct VestingPosition {
+        uint256 amount;
+        uint256 vestingEnds;
+        bool claimed;
+    }
+
+    /// @notice Set beneficiary address
+    function setBeneficiary(address _beneficiary) external;
+
+    /// @notice Get next nonce
+    function getVestingNonce() external view returns (uint256);
+
+    /// @notice Get vesting position by nonce
+    function getVestingPosition(uint256 _nonce) external view returns (VestingPosition memory);
+
+    /// @notice Deposit with custom vesting period
+    function deposit(uint256 _amount, uint256 _vestingPeriod) external;
+
+    /// @notice Deposit with default vesting period
+    function deposit(uint256 _amount) external;
+
+    /// @notice Withdraw tokens
+    function ragequit(address _to) external;
+
+    /// @notice Claim vesting position
+    function claim(uint256 _nonce) external;
+}
+```
+
 ## Building and running tests:
 1. Create `.env` file and place `ALCHEMY_API_KEY={YOUR KEY HERE}` env var there for Arbitrum
 2. Run `forge build` to build contracts
