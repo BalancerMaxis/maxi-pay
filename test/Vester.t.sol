@@ -10,6 +10,26 @@ contract TestVester is BaseFixture {
     }
 
     //////////////////////////////////////////////////////////////////
+    //                   Setters and misc                           //
+    //////////////////////////////////////////////////////////////////
+    /// @dev DAO msig can override beneficiary
+    function testSetBeneficiary() public {
+        vm.prank(DAO_MSIG);
+        Vester aliceVester = Vester(factory.deployVestingContract(alice));
+        vm.prank(DAO_MSIG);
+        aliceVester.setBeneficiary(bob);
+        assertEq(aliceVester.beneficiary(), bob);
+    }
+
+    function testSetBeneficiaryUnhappy() public {
+        vm.prank(DAO_MSIG);
+        Vester aliceVester = Vester(factory.deployVestingContract(alice));
+        vm.expectRevert(abi.encodeWithSelector(VesterErrors.NotDaoMsig.selector));
+        vm.prank(alice);
+        aliceVester.setBeneficiary(bob);
+    }
+
+    //////////////////////////////////////////////////////////////////
     //                   Deposits and claims                        //
     //////////////////////////////////////////////////////////////////
     /// @dev Simple case when deposit creates vesting position
@@ -143,6 +163,50 @@ contract TestVester is BaseFixture {
         aliceVester.claim(0);
     }
 
+    function testClaimNotBeneficiary(uint256 _depositAmount, uint256 _vestingPeriod) public {
+        _depositAmount = bound(_depositAmount, 1e18, STAKED_AURABAL.totalSupply());
+        _vestingPeriod = bound(_vestingPeriod, 1 days, 1000 days);
+        vm.prank(DAO_MSIG);
+        Vester aliceVester = Vester(factory.deployVestingContract(alice));
+        setStorage(address(DAO_MSIG), STAKED_AURABAL.balanceOf.selector, address(STAKED_AURABAL), _depositAmount);
+
+        vm.prank(DAO_MSIG);
+        STAKED_AURABAL.approve(address(aliceVester), _depositAmount);
+
+        vm.prank(DAO_MSIG);
+        aliceVester.deposit(_depositAmount, _vestingPeriod);
+
+        vm.warp(block.timestamp + (_vestingPeriod + 1));
+
+        vm.prank(bob);
+        vm.expectRevert(abi.encodeWithSelector(VesterErrors.NotBeneficiary.selector));
+        aliceVester.claim(0);
+    }
+
+    /// @dev Should revert when trying to claim same position twice
+    function testClaimCannotClaimMulTimes(uint256 _depositAmount, uint256 _vestingPeriod) public {
+        _depositAmount = bound(_depositAmount, 1e18, STAKED_AURABAL.totalSupply());
+        _vestingPeriod = bound(_vestingPeriod, 1 days, 1000 days);
+        vm.prank(DAO_MSIG);
+        Vester aliceVester = Vester(factory.deployVestingContract(alice));
+        setStorage(address(DAO_MSIG), STAKED_AURABAL.balanceOf.selector, address(STAKED_AURABAL), _depositAmount);
+
+        vm.prank(DAO_MSIG);
+        STAKED_AURABAL.approve(address(aliceVester), _depositAmount);
+
+        vm.prank(DAO_MSIG);
+        aliceVester.deposit(_depositAmount, _vestingPeriod);
+
+        vm.warp(block.timestamp + (_vestingPeriod + 1));
+
+        vm.prank(alice);
+        aliceVester.claim(0);
+
+        vm.prank(alice);
+        vm.expectRevert(abi.encodeWithSelector(VesterErrors.AlreadyClaimed.selector));
+        aliceVester.claim(0);
+    }
+
     //////////////////////////////////////////////////////////////////
     //                       Ragequit                               //
     //////////////////////////////////////////////////////////////////
@@ -171,5 +235,26 @@ contract TestVester is BaseFixture {
         assertEq(STAKED_AURABAL.balanceOf(address(aliceVester)), 0);
         // Make sure vester has no more AURA
         assertEq(AURA.balanceOf(address(aliceVester)), 0);
+    }
+
+    function testCannotRQToZeroAddr(uint256 _depositAmount) public {
+        _depositAmount = bound(_depositAmount, 1e18, STAKED_AURABAL.totalSupply());
+        vm.prank(DAO_MSIG);
+        Vester aliceVester = Vester(factory.deployVestingContract(alice));
+        setStorage(address(DAO_MSIG), STAKED_AURABAL.balanceOf.selector, address(STAKED_AURABAL), _depositAmount);
+
+        vm.prank(DAO_MSIG);
+        STAKED_AURABAL.approve(address(aliceVester), _depositAmount);
+
+        vm.prank(DAO_MSIG);
+        aliceVester.deposit(_depositAmount);
+
+        // Roll time to the end of the vesting period to accrue AURA rewards
+        vm.warp(block.timestamp + vester.DEFAULT_VESTING_PERIOD());
+
+        // Rage quite to random EOA
+        vm.prank(DAO_MSIG);
+        vm.expectRevert("ERC20: transfer to the zero address");
+        aliceVester.ragequit(address(0));
     }
 }
