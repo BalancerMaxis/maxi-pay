@@ -47,12 +47,16 @@ contract Factory is Ownable {
         return implementation;
     }
 
+    function getVestingContracts(address _user) public view returns (address[] memory) {
+        return vestingContracts[_user];
+    }
+
     /// @notice Deploy a new vesting contract
-    function deployVestingContract(address _owner) public onlyOwner returns (address vestingContract) {
+    function deployVestingContract(address _beneficiary) public onlyOwner returns (address vestingContract) {
         vestingContract = implementation.clone();
-        Vester(vestingContract).initialise(_owner);
+        Vester(vestingContract).initialise(_beneficiary);
         // Put vesting contract in mapping
-        vestingContracts[_owner].push(vestingContract);
-        emit LogVestingContractDeployed(vestingContract, _owner);
+        vestingContracts[_beneficiary].push(vestingContract);
+        emit LogVestingContractDeployed(vestingContract, _beneficiary);
     }
 }

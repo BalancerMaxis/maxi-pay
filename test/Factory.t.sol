@@ -50,5 +50,10 @@ contract TestFactory is BaseFixture {
         vm.prank(DAO_MSIG);
         Vester bobVester2 = Vester(factory.deployVestingContract(bob));
         assertEq(factory.vestingContracts(bob, 1), address(bobVester2));
+
+        // Get all Bob's vesting contracts
+        address[] memory bobVesters = factory.getVestingContracts(bob);
+        assertEq(bobVesters.length, 2);
+        assertEq(bobVesters[0], address(bobVester));
     }
 }
