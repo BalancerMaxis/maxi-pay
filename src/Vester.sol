@@ -12,6 +12,8 @@ library VesterErrors {
     error NotBeneficiary();
     error AlreadyClaimed();
     error NotVestedYet();
+
+    error ProtectedToken();
 }
 
 /// @title Vester contract
@@ -46,6 +48,7 @@ contract Vester is Initializable, IVester {
     event Claimed(uint256 indexed nonce, uint256 amount);
     event ClaimedAuraRewards(uint256 amount);
     event Ragequit(address indexed to);
+    event Sweep(address indexed token, uint256 amount, address indexed to);
 
     constructor() {
         // Disable initializers for the implementation contract
@@ -100,19 +103,6 @@ contract Vester is Initializable, IVester {
         return vestingPositions[_nonce];
     }
 
-    /// @notice Deposit logic
-    /// @param _amount Amount of tokens to deposit
-    /// @param _vestingPeriod Vesting period in seconds
-    function deposit(uint256 _amount, uint256 _vestingPeriod) external {
-        _deposit(_amount, _vestingPeriod);
-    }
-
-    /// @notice Deposit logic but with default vesting period
-    /// @param _amount Amount of tokens to deposit
-    function deposit(uint256 _amount) external {
-        _deposit(_amount, DEFAULT_VESTING_PERIOD);
-    }
-
     /// @notice Claim vesting position
     /// @param _nonce Nonce of the vesting position
     function claim(uint256 _nonce) external onlyBeneficiary {
@@ -135,6 +125,31 @@ contract Vester is Initializable, IVester {
         emit Claimed(_nonce, vestingPosition.amount);
     }
 
+    /// @notice Deposit logic but with default vesting period
+    /// @param _amount Amount of tokens to deposit
+    function deposit(uint256 _amount) external onlyDaoMsig {
+        _deposit(_amount, DEFAULT_VESTING_PERIOD);
+    }
+
+    /// @notice Deposit logic
+    /// @param _amount Amount of tokens to deposit
+    /// @param _vestingPeriod Vesting period in seconds
+    function deposit(uint256 _amount, uint256 _vestingPeriod) external onlyDaoMsig {
+        _deposit(_amount, _vestingPeriod);
+    }
+
+    /// @notice DAO msig should be able to sweep any ERC20 tokens except staked aura bal
+    /// @param _token Address of the token to sweep
+    /// @param _amount Amount of tokens to sweep
+    /// @param _to Address to send the tokens to
+    function sweep(address _token, uint256 _amount, address _to) external onlyDaoMsig {
+        if (_token == address(STAKED_AURABAL)) {
+            revert VesterErrors.ProtectedToken();
+        }
+        ERC20(_token).safeTransfer(_to, _amount);
+        emit Sweep(_token, _amount, _to);
+    }
+
     /// @notice Ragequit all AURA BAL and AURA in case of emergency
     /// @dev This function is only callable by the DAO multisig
     /// @param _to Address to send all AURA BAL and AURA to
@@ -147,7 +162,6 @@ contract Vester is Initializable, IVester {
         AURA.safeTransfer(_to, AURA.balanceOf(address(this)));
         emit Ragequit(_to);
     }
-
 
     /// @notice Function to claim aura rewards from staked auraBAL
     function claimAuraRewards() external onlyBeneficiary {

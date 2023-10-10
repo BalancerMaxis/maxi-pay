@@ -210,7 +210,7 @@ contract TestVester is BaseFixture {
     }
 
     //////////////////////////////////////////////////////////////////
-    //                       Ragequit                               //
+    //                       Claim Rewards                          //
     //////////////////////////////////////////////////////////////////
     function testClaimAuraRewards(uint256 _depositAmount, uint256 _vestingPeriod) public {
         _depositAmount = bound(_depositAmount, 1e18, STAKED_AURABAL.totalSupply());
@@ -231,6 +231,38 @@ contract TestVester is BaseFixture {
         vm.prank(alice);
         aliceVester.claimAuraRewards();
         assertGt(AURA.balanceOf(address(alice)), auraBalanceSnapshot);
+    }
+
+    //////////////////////////////////////////////////////////////////
+    //                            Sweep                             //
+    //////////////////////////////////////////////////////////////////
+
+    function testSweepHappy(uint256 _sweepAmount) public {
+        vm.prank(DAO_MSIG);
+        Vester aliceVester = Vester(factory.deployVestingContract(alice));
+
+        // Now give vesting contract some tokens and sweep them
+        setStorage(address(aliceVester), AURA.balanceOf.selector, address(AURA), _sweepAmount);
+
+        // DAO msig can sweep now
+        vm.prank(DAO_MSIG);
+        aliceVester.sweep(address(AURA), _sweepAmount, bob);
+
+        assertEq(AURA.balanceOf(bob), _sweepAmount);
+    }
+
+    function testSweepUnhappyProtected(uint256 _sweepAmount) public {
+        vm.prank(DAO_MSIG);
+        Vester aliceVester = Vester(factory.deployVestingContract(alice));
+
+        setStorage(address(aliceVester), STAKED_AURABAL.balanceOf.selector, address(STAKED_AURABAL), _sweepAmount);
+
+        // DAO msig can sweep now
+        vm.prank(DAO_MSIG);
+        vm.expectRevert(abi.encodeWithSelector(VesterErrors.ProtectedToken.selector));
+        aliceVester.sweep(address(STAKED_AURABAL), _sweepAmount, bob);
+
+        assertEq(AURA.balanceOf(bob), 0);
     }
 
     //////////////////////////////////////////////////////////////////
