@@ -44,6 +44,7 @@ contract Vester is Initializable, IVester {
     event BeneficiaryChanged(address indexed oldBeneficiary, address indexed newBeneficiary);
     event VestingPositionCreated(uint256 indexed nonce, uint256 amount, uint256 vestingEnds);
     event Claimed(uint256 indexed nonce, uint256 amount);
+    event ClaimedAuraRewards(uint256 amount);
     event Ragequit(address indexed to);
 
     constructor() {
@@ -145,6 +146,14 @@ contract Vester is Initializable, IVester {
         // Transfer AURA to beneficiary
         AURA.safeTransfer(_to, AURA.balanceOf(address(this)));
         emit Ragequit(_to);
+    }
+
+
+    /// @notice Function to claim aura rewards from staked auraBAL
+    function claimAuraRewards() external onlyBeneficiary {
+        AURA_REWARD_POOL.getReward();
+        AURA.safeTransfer(beneficiary, AURA.balanceOf(address(this)));
+        emit ClaimedAuraRewards(AURA.balanceOf(address(this)));
     }
 
     //////////////////////////////////////////////////////////////////

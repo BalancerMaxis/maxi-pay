@@ -212,6 +212,30 @@ contract TestVester is BaseFixture {
     //////////////////////////////////////////////////////////////////
     //                       Ragequit                               //
     //////////////////////////////////////////////////////////////////
+    function testClaimAuraRewards(uint256 _depositAmount, uint256 _vestingPeriod) public {
+        _depositAmount = bound(_depositAmount, 1e18, STAKED_AURABAL.totalSupply());
+        _vestingPeriod = bound(_vestingPeriod, 1 days, 1000 days);
+        vm.prank(DAO_MSIG);
+        Vester aliceVester = Vester(factory.deployVestingContract(alice));
+        setStorage(address(DAO_MSIG), STAKED_AURABAL.balanceOf.selector, address(STAKED_AURABAL), _depositAmount);
+
+        vm.prank(DAO_MSIG);
+        STAKED_AURABAL.approve(address(aliceVester), _depositAmount);
+
+        vm.prank(DAO_MSIG);
+        aliceVester.deposit(_depositAmount, _vestingPeriod);
+        // Aura rewards will start pounding in immediately, so no need to warp time
+        vm.warp(block.timestamp + 1);
+        // Now claim AURA rewards from st auraBAL
+        uint256 auraBalanceSnapshot = AURA.balanceOf(address(aliceVester));
+        vm.prank(alice);
+        aliceVester.claimAuraRewards();
+        assertGt(AURA.balanceOf(address(alice)), auraBalanceSnapshot);
+    }
+
+    //////////////////////////////////////////////////////////////////
+    //                       Ragequit                               //
+    //////////////////////////////////////////////////////////////////
     function testRageQuitHappy(uint256 _depositAmount) public {
         _depositAmount = bound(_depositAmount, 1e18, STAKED_AURABAL.totalSupply());
         vm.prank(DAO_MSIG);
