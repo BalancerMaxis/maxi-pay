@@ -10,6 +10,7 @@ contract BaseFixture is Test {
     using stdStorage for StdStorage;
 
     address public constant DAO_MSIG = address(0xaF23DC5983230E9eEAf93280e312e57539D098D0);
+    address public constant MAXIS_OPS = address(0x5891b90CE909d4c3540d640d2BdAAF3fD5157EAD);
     ERC20 public constant STAKED_AURABAL = ERC20(address(0x4EA9317D90b61fc28C418C247ad0CA8939Bbb0e9));
     ERC20 public constant AURA = ERC20(address(0x1509706a6c66CA549ff0cB464de88231DDBe213B));
 
