@@ -10,7 +10,7 @@ contract TestFactory is BaseFixture {
 
     function testFactoryOwnership() public {
         // Make sure the factory is owned by the DAO multisig
-        assertEq(address(factory.owner()), factory.DAO_MSIG());
+        assertEq(address(factory.owner()), factory.MAXIS_OPS());
 
         // Check implementation address
         assertEq(address(factory.getImplementation()), address(vester));
@@ -19,7 +19,7 @@ contract TestFactory is BaseFixture {
     function testSetNewImplHappy() public {
         // Deploy a new vesting contract
         Vester newVester = new Vester();
-        vm.prank(DAO_MSIG);
+        vm.prank(MAXIS_OPS);
         factory.setImplementation(address(newVester));
         assertEq(address(factory.getImplementation()), address(newVester));
     }
@@ -33,7 +33,7 @@ contract TestFactory is BaseFixture {
     }
 
     function testDeployVesters() public {
-        vm.prank(DAO_MSIG);
+        vm.prank(MAXIS_OPS);
         Vester aliceVester = Vester(factory.deployVestingContract(alice));
 
         // Check that the vesting contract was deployed
@@ -41,13 +41,13 @@ contract TestFactory is BaseFixture {
         assertEq(aliceVester.beneficiary(), alice);
 
         // Deploy vester for Bob
-        vm.prank(DAO_MSIG);
+        vm.prank(MAXIS_OPS);
         Vester bobVester = Vester(factory.deployVestingContract(bob));
         // Check that the vesting contract was deployed
         assertEq(factory.vestingContracts(bob, 0), address(bobVester));
 
         // Deploy one more for Bob and make sure it is accessible in the array
-        vm.prank(DAO_MSIG);
+        vm.prank(MAXIS_OPS);
         Vester bobVester2 = Vester(factory.deployVestingContract(bob));
         assertEq(factory.vestingContracts(bob, 1), address(bobVester2));
 

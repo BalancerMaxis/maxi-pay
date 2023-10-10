@@ -10,6 +10,7 @@ import "./interfaces/IVester.sol";
 library VesterErrors {
     error NotDaoMsig();
     error NotBeneficiary();
+    error NotMaxis();
     error AlreadyClaimed();
     error NotVestedYet();
 
@@ -30,6 +31,7 @@ contract Vester is Initializable, IVester {
     IAuraRewardPool public constant AURA_REWARD_POOL =
         IAuraRewardPool(address(0x14b820F0F69614761E81ea4431509178dF47bBD3));
     address public constant DAO_MSIG = address(0xaF23DC5983230E9eEAf93280e312e57539D098D0);
+    address public constant MAXIS_OPS = address(0x5891b90CE909d4c3540d640d2BdAAF3fD5157EAD);
     uint256 public constant DEFAULT_VESTING_PERIOD = 365 days;
     //////////////////////////////////////////////////////////////////
     //                         Storage                              //
@@ -75,6 +77,13 @@ contract Vester is Initializable, IVester {
     modifier onlyDaoMsig() {
         if (msg.sender != DAO_MSIG) {
             revert VesterErrors.NotDaoMsig();
+        }
+        _;
+    }
+
+    modifier onlyMaxisOps() {
+        if (msg.sender != MAXIS_OPS) {
+            revert VesterErrors.NotMaxis();
         }
         _;
     }
@@ -127,14 +136,14 @@ contract Vester is Initializable, IVester {
 
     /// @notice Deposit logic but with default vesting period
     /// @param _amount Amount of tokens to deposit
-    function deposit(uint256 _amount) external onlyDaoMsig {
+    function deposit(uint256 _amount) external onlyMaxisOps {
         _deposit(_amount, DEFAULT_VESTING_PERIOD);
     }
 
     /// @notice Deposit logic
     /// @param _amount Amount of tokens to deposit
     /// @param _vestingPeriod Vesting period in seconds
-    function deposit(uint256 _amount, uint256 _vestingPeriod) external onlyDaoMsig {
+    function deposit(uint256 _amount, uint256 _vestingPeriod) external onlyMaxisOps {
         _deposit(_amount, _vestingPeriod);
     }
 
@@ -142,7 +151,7 @@ contract Vester is Initializable, IVester {
     /// @param _token Address of the token to sweep
     /// @param _amount Amount of tokens to sweep
     /// @param _to Address to send the tokens to
-    function sweep(address _token, uint256 _amount, address _to) external onlyDaoMsig {
+    function sweep(address _token, uint256 _amount, address _to) external onlyMaxisOps {
         if (_token == address(STAKED_AURABAL)) {
             revert VesterErrors.ProtectedToken();
         }
