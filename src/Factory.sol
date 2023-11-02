@@ -31,7 +31,7 @@ contract Factory is Ownable, IFactory {
     /// @param _implementation Address of the implementation
     constructor(address _implementation) Ownable() {
         implementation = _implementation;
-        transferOwnership(MAXIS_OPS);
+        _transferOwnership(MAXIS_OPS);
     }
 
     /// @notice Set implementation address
