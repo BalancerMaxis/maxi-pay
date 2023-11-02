@@ -8,7 +8,6 @@ import "./interfaces/IAuraRewardPool.sol";
 import "./interfaces/IVester.sol";
 
 library VesterErrors {
-    error NotDaoMsig();
     error NotBeneficiary();
     error NotMaxis();
     error AlreadyClaimed();
@@ -30,7 +29,6 @@ contract Vester is Initializable, IVester {
 
     IAuraRewardPool public constant AURA_REWARD_POOL =
         IAuraRewardPool(address(0x14b820F0F69614761E81ea4431509178dF47bBD3));
-    address public constant DAO_MSIG = address(0xaF23DC5983230E9eEAf93280e312e57539D098D0);
     address public constant MAXIS_OPS = address(0x5891b90CE909d4c3540d640d2BdAAF3fD5157EAD);
     uint256 public constant DEFAULT_VESTING_PERIOD = 365 days;
     //////////////////////////////////////////////////////////////////
@@ -48,7 +46,7 @@ contract Vester is Initializable, IVester {
     event BeneficiaryChanged(address indexed oldBeneficiary, address indexed newBeneficiary);
     event VestingPositionCreated(uint256 indexed nonce, uint256 amount, uint256 vestingEnds);
     event Claimed(uint256 indexed nonce, uint256 amount);
-    event ClaimedAuraRewards(uint256 amount);
+    event ClaimedAuraRewards(uint256 amount, address indexed token);
     event Ragequit(address indexed to);
     event Sweep(address indexed token, uint256 amount, address indexed to);
 
@@ -74,13 +72,6 @@ contract Vester is Initializable, IVester {
         _;
     }
 
-    modifier onlyDaoMsig() {
-        if (msg.sender != DAO_MSIG) {
-            revert VesterErrors.NotDaoMsig();
-        }
-        _;
-    }
-
     modifier onlyMaxisOps() {
         if (msg.sender != MAXIS_OPS) {
             revert VesterErrors.NotMaxis();
@@ -91,7 +82,7 @@ contract Vester is Initializable, IVester {
     //////////////////////////////////////////////////////////////////
     //                   Permissioned Setters                       //
     //////////////////////////////////////////////////////////////////
-    function setBeneficiary(address _beneficiary) public onlyDaoMsig {
+    function setBeneficiary(address _beneficiary) public onlyMaxisOps {
         address oldBeneficiary = beneficiary;
         beneficiary = _beneficiary;
         emit BeneficiaryChanged(oldBeneficiary, _beneficiary);
@@ -124,7 +115,6 @@ contract Vester is Initializable, IVester {
         }
         vestingPosition.claimed = true;
         // Claim AURA rewards
-        // TODO: Q: should send all AURA rewards even if there are multiple vesting positions?
         AURA_REWARD_POOL.getReward();
         // Transfer staked AURA BAL to beneficiary
         STAKED_AURABAL.safeTransfer(beneficiary, vestingPosition.amount);
@@ -147,7 +137,7 @@ contract Vester is Initializable, IVester {
         _deposit(_amount, _vestingPeriod);
     }
 
-    /// @notice DAO msig should be able to sweep any ERC20 tokens except staked aura bal
+    /// @notice Maxis msig should be able to sweep any ERC20 tokens except staked aura bal
     /// @param _token Address of the token to sweep
     /// @param _amount Amount of tokens to sweep
     /// @param _to Address to send the tokens to
@@ -160,9 +150,9 @@ contract Vester is Initializable, IVester {
     }
 
     /// @notice Ragequit all AURA BAL and AURA in case of emergency
-    /// @dev This function is only callable by the DAO multisig
+    /// @dev This function is only callable by the Maxis multisig
     /// @param _to Address to send all AURA BAL and AURA to
-    function ragequit(address _to) external onlyDaoMsig {
+    function ragequit(address _to) external onlyMaxisOps {
         // Claim rewards and transfer AURA to beneficiary
         AURA_REWARD_POOL.getReward();
         // Transfer staked AURA BAL to beneficiary
@@ -176,7 +166,7 @@ contract Vester is Initializable, IVester {
     function claimAuraRewards() external onlyBeneficiary {
         AURA_REWARD_POOL.getReward();
         AURA.safeTransfer(beneficiary, AURA.balanceOf(address(this)));
-        emit ClaimedAuraRewards(AURA.balanceOf(address(this)));
+        emit ClaimedAuraRewards(AURA.balanceOf(address(this)), address(AURA));
     }
 
     //////////////////////////////////////////////////////////////////
