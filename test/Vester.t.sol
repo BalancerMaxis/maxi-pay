@@ -284,7 +284,7 @@ contract TestVester is BaseFixture {
         vm.warp(block.timestamp + vester.DEFAULT_VESTING_PERIOD());
 
         // Rage quite to random EOA
-        vm.prank(MAXIS_OPS);
+        vm.prank(DAO_MSIG);
         aliceVester.ragequit(randomEOA);
         assertEq(STAKED_AURABAL.balanceOf(randomEOA), _depositAmount);
         assertGt(AURA.balanceOf(randomEOA), 0);
@@ -293,6 +293,8 @@ contract TestVester is BaseFixture {
         assertEq(STAKED_AURABAL.balanceOf(address(aliceVester)), 0);
         // Make sure vester has no more AURA
         assertEq(AURA.balanceOf(address(aliceVester)), 0);
+        // Make sure contract is bricked
+        assertTrue(aliceVester.paused());
     }
 
     function testCannotRQToZeroAddr(uint256 _depositAmount) public {
@@ -311,8 +313,9 @@ contract TestVester is BaseFixture {
         vm.warp(block.timestamp + vester.DEFAULT_VESTING_PERIOD());
 
         // Rage quite to random EOA
-        vm.prank(MAXIS_OPS);
+        vm.prank(DAO_MSIG);
         vm.expectRevert("ERC20: transfer to the zero address");
         aliceVester.ragequit(address(0));
+        assertFalse(aliceVester.paused());
     }
 }
