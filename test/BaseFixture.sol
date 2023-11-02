@@ -30,7 +30,7 @@ contract BaseFixture is Test {
 
     function setUp() public virtual {
         // https://arbiscan.io/block/137047782
-        vm.createSelectFork("arbitrum", 137_047_782);
+        vm.createSelectFork("arbitrum", 146_394_254);
         utils = new Utils();
         users = utils.createUsers(5);
         alice = users[0];
