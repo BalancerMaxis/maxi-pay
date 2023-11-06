@@ -49,7 +49,7 @@ contract Vester is Initializable, Pausable, IVester {
     event BeneficiaryChanged(address indexed oldBeneficiary, address indexed newBeneficiary);
     event VestingPositionCreated(uint256 indexed nonce, uint256 amount, uint256 vestingEnds);
     event Claimed(uint256 indexed nonce, uint256 amount);
-    event ClaimedAuraRewards(uint256 amount, address indexed token);
+    event ClaimedAuraRewards(uint256 amount);
     event Ragequit(address indexed to);
     event Sweep(address indexed token, uint256 amount, address indexed to);
 
@@ -126,6 +126,7 @@ contract Vester is Initializable, Pausable, IVester {
         vestingPosition.claimed = true;
         // Claim AURA rewards
         AURA_REWARD_POOL.getReward();
+        emit ClaimedAuraRewards(AURA.balanceOf(address(this)));
         // Transfer staked AURA BAL to beneficiary
         STAKED_AURABAL.safeTransfer(beneficiary, vestingPosition.amount);
         // Transfer AURA to beneficiary
@@ -179,7 +180,7 @@ contract Vester is Initializable, Pausable, IVester {
     function claimAuraRewards() external onlyBeneficiary {
         AURA_REWARD_POOL.getReward();
         AURA.safeTransfer(beneficiary, AURA.balanceOf(address(this)));
-        emit ClaimedAuraRewards(AURA.balanceOf(address(this)), address(AURA));
+        emit ClaimedAuraRewards(AURA.balanceOf(address(this)));
     }
 
     //////////////////////////////////////////////////////////////////
