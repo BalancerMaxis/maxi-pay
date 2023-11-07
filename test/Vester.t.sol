@@ -16,7 +16,7 @@ contract TestVester is BaseFixture {
     function testSetBeneficiary() public {
         vm.prank(MAXIS_OPS);
         Vester aliceVester = Vester(factory.deployVestingContract(alice));
-        vm.prank(DAO_MSIG);
+        vm.prank(MAXIS_OPS);
         aliceVester.setBeneficiary(bob);
         assertEq(aliceVester.beneficiary(), bob);
     }
@@ -24,7 +24,7 @@ contract TestVester is BaseFixture {
     function testSetBeneficiaryUnhappy() public {
         vm.prank(MAXIS_OPS);
         Vester aliceVester = Vester(factory.deployVestingContract(alice));
-        vm.expectRevert(abi.encodeWithSelector(VesterErrors.NotDaoMsig.selector));
+        vm.expectRevert(abi.encodeWithSelector(VesterErrors.NotMaxis.selector));
         vm.prank(alice);
         aliceVester.setBeneficiary(bob);
     }
@@ -293,6 +293,8 @@ contract TestVester is BaseFixture {
         assertEq(STAKED_AURABAL.balanceOf(address(aliceVester)), 0);
         // Make sure vester has no more AURA
         assertEq(AURA.balanceOf(address(aliceVester)), 0);
+        // Make sure contract is bricked
+        assertTrue(aliceVester.paused());
     }
 
     function testCannotRQToZeroAddr(uint256 _depositAmount) public {
@@ -314,5 +316,6 @@ contract TestVester is BaseFixture {
         vm.prank(DAO_MSIG);
         vm.expectRevert("ERC20: transfer to the zero address");
         aliceVester.ragequit(address(0));
+        assertFalse(aliceVester.paused());
     }
 }

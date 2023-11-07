@@ -12,7 +12,6 @@ contract Factory is Ownable, IFactory {
     //                         Constants                            //
     //////////////////////////////////////////////////////////////////
 
-    address public constant DAO_MSIG = address(0xaF23DC5983230E9eEAf93280e312e57539D098D0);
     address public constant MAXIS_OPS = address(0x5891b90CE909d4c3540d640d2BdAAF3fD5157EAD);
     //////////////////////////////////////////////////////////////////
     //                         Storage                              //
@@ -31,7 +30,7 @@ contract Factory is Ownable, IFactory {
     /// @param _implementation Address of the implementation
     constructor(address _implementation) Ownable() {
         implementation = _implementation;
-        transferOwnership(MAXIS_OPS);
+        _transferOwnership(MAXIS_OPS);
     }
 
     /// @notice Set implementation address

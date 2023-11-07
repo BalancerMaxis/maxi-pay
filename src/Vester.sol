@@ -2,15 +2,16 @@
 pragma solidity 0.8.20;
 
 import "../lib/openzeppelin-contracts/contracts/proxy/utils/Initializable.sol";
+import "../lib/openzeppelin-contracts/contracts/security/Pausable.sol";
 import "../lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 import "../lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./interfaces/IAuraRewardPool.sol";
 import "./interfaces/IVester.sol";
 
 library VesterErrors {
-    error NotDaoMsig();
     error NotBeneficiary();
     error NotMaxis();
+    error NotDAO();
     error AlreadyClaimed();
     error NotVestedYet();
 
@@ -19,7 +20,7 @@ library VesterErrors {
 
 /// @title Vester contract
 /// @notice Each Maxis User has a personal vesting contract deployed
-contract Vester is Initializable, IVester {
+contract Vester is Initializable, Pausable, IVester {
     using SafeERC20 for ERC20;
 
     //////////////////////////////////////////////////////////////////
@@ -30,8 +31,8 @@ contract Vester is Initializable, IVester {
 
     IAuraRewardPool public constant AURA_REWARD_POOL =
         IAuraRewardPool(address(0x14b820F0F69614761E81ea4431509178dF47bBD3));
-    address public constant DAO_MSIG = address(0xaF23DC5983230E9eEAf93280e312e57539D098D0);
     address public constant MAXIS_OPS = address(0x5891b90CE909d4c3540d640d2BdAAF3fD5157EAD);
+    address public constant DAO_MSIG = address(0xaF23DC5983230E9eEAf93280e312e57539D098D0);
     uint256 public constant DEFAULT_VESTING_PERIOD = 365 days;
     //////////////////////////////////////////////////////////////////
     //                         Storage                              //
@@ -76,7 +77,7 @@ contract Vester is Initializable, IVester {
 
     modifier onlyDaoMsig() {
         if (msg.sender != DAO_MSIG) {
-            revert VesterErrors.NotDaoMsig();
+            revert VesterErrors.NotDAO();
         }
         _;
     }
@@ -91,7 +92,7 @@ contract Vester is Initializable, IVester {
     //////////////////////////////////////////////////////////////////
     //                   Permissioned Setters                       //
     //////////////////////////////////////////////////////////////////
-    function setBeneficiary(address _beneficiary) public onlyDaoMsig {
+    function setBeneficiary(address _beneficiary) public onlyMaxisOps {
         address oldBeneficiary = beneficiary;
         beneficiary = _beneficiary;
         emit BeneficiaryChanged(oldBeneficiary, _beneficiary);
@@ -114,7 +115,7 @@ contract Vester is Initializable, IVester {
 
     /// @notice Claim vesting position
     /// @param _nonce Nonce of the vesting position
-    function claim(uint256 _nonce) external onlyBeneficiary {
+    function claim(uint256 _nonce) external onlyBeneficiary whenNotPaused {
         VestingPosition storage vestingPosition = vestingPositions[_nonce];
         if (vestingPosition.claimed) {
             revert VesterErrors.AlreadyClaimed();
@@ -124,8 +125,8 @@ contract Vester is Initializable, IVester {
         }
         vestingPosition.claimed = true;
         // Claim AURA rewards
-        // TODO: Q: should send all AURA rewards even if there are multiple vesting positions?
         AURA_REWARD_POOL.getReward();
+        emit ClaimedAuraRewards(AURA.balanceOf(address(this)));
         // Transfer staked AURA BAL to beneficiary
         STAKED_AURABAL.safeTransfer(beneficiary, vestingPosition.amount);
         // Transfer AURA to beneficiary
@@ -136,18 +137,18 @@ contract Vester is Initializable, IVester {
 
     /// @notice Deposit logic but with default vesting period
     /// @param _amount Amount of tokens to deposit
-    function deposit(uint256 _amount) external onlyMaxisOps {
+    function deposit(uint256 _amount) external onlyMaxisOps whenNotPaused {
         _deposit(_amount, DEFAULT_VESTING_PERIOD);
     }
 
     /// @notice Deposit logic
     /// @param _amount Amount of tokens to deposit
     /// @param _vestingPeriod Vesting period in seconds
-    function deposit(uint256 _amount, uint256 _vestingPeriod) external onlyMaxisOps {
+    function deposit(uint256 _amount, uint256 _vestingPeriod) external onlyMaxisOps whenNotPaused {
         _deposit(_amount, _vestingPeriod);
     }
 
-    /// @notice DAO msig should be able to sweep any ERC20 tokens except staked aura bal
+    /// @notice Maxis msig should be able to sweep any ERC20 tokens except staked aura bal
     /// @param _token Address of the token to sweep
     /// @param _amount Amount of tokens to sweep
     /// @param _to Address to send the tokens to
@@ -169,10 +170,13 @@ contract Vester is Initializable, IVester {
         STAKED_AURABAL.safeTransfer(_to, STAKED_AURABAL.balanceOf(address(this)));
         // Transfer AURA to beneficiary
         AURA.safeTransfer(_to, AURA.balanceOf(address(this)));
+        // Pause and render the contract useless
+        _pause();
         emit Ragequit(_to);
     }
 
     /// @notice Function to claim aura rewards from staked auraBAL
+    /// @notice Can be still claimed even if the contract is paused
     function claimAuraRewards() external onlyBeneficiary {
         AURA_REWARD_POOL.getReward();
         AURA.safeTransfer(beneficiary, AURA.balanceOf(address(this)));
